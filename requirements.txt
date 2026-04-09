@@ -39,3 +39,13 @@ uvicorn
 
 flask
 scikit-learn
+
+
+faiss-cpu
+
+python-multipart
+PyMuPDF
+python-docx
+joblib
+pandas
+numpy
