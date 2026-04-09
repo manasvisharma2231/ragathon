@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlacementIQ - Readiness & Guidance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #3b82f6;
+            --text-main: #f8fafc;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top left, #1e293b, #0f172a);
+            color: var(--text-main);
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+        }
+        .chat-bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            animation: fadeIn 0.3s ease-out forwards;
+            line-height: 1.5;
+        }
+        .chat-ai {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .chat-user {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .score-dial-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+        .score-circle-bg, .score-circle-progress {
+            fill: none;
+            stroke-width: 12;
+            cx: 100;
+            cy: 100;
+            r: 90;
+        }
+        .score-circle-bg {
+            stroke: rgba(255, 255, 255, 0.05);
+        }
+        .score-circle-progress {
+            stroke: var(--accent-color);
+            stroke-linecap: round;
+            stroke-dasharray: 565.48;
+            stroke-dashoffset: 565.48;
+            transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--accent-color);
+            background: rgba(59, 130, 246, 0.05);
+        }
+        .exp-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .exp-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.4);
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+    </style>
+</head>
+<body class="p-6 md:p-8">
+
+<div class="max-w-7xl mx-auto flex flex-col items-center mb-8">
+    <h1 class="text-4xl font-bold tracking-tight text-white mb-2">Placement<span class="text-blue-500">IQ</span></h1>
+    <p class="text-slate-400">AI-Powered Readiness & Experience Matcher</p>
+</div>
+
+<div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 h-[75vh]">
+    <div class="glass flex flex-col lg:col-span-4 h-full relative overflow-hidden">
+        <div class="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center z-10">
+            <h2 class="font-semibold text-lg flex items-center gap-2">🟢 Profiler AI</h2>
+            <button onclick="resetSession()" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full transition">Reset</button>
+        </div>
+
+        <div id="chatBox" class="flex-1 p-4 overflow-y-auto flex flex-col gap-2 z-10 pb-[130px]">
+            <div class="chat-bubble chat-ai">
+                Hi! Upload your resume (PDF/DOCX) below, or let's chat so I can evaluate your placement readiness. What's your current CGPA?
+            </div>
+        </div>
+
+        <div class="absolute bottom-0 left-0 w-full p-4 bg-slate-900/80 backdrop-blur-md border-t border-white/10 z-20">
+            <label id="uploadLabel" class="upload-area flex flex-col items-center justify-center p-2 mb-3 cursor-pointer text-xs text-slate-400">
+                <span>📄 Upload Resume (Auto-Extract via Gemini)</span>
+                <input type="file" id="resumeUpload" accept=".pdf,.docx" class="hidden" onchange="handleFileUpload(event)">
+            </label>
+            <form id="chatForm" onsubmit="handleChatSubmit(event)" class="flex gap-2 relative">
+                <input type="text" id="chatInput" placeholder="Type your answer..." autocomplete="off"
+                       class="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition text-sm">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-5 rounded-xl transition font-semibold shadow-lg shadow-blue-500/20">Send</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Score DB -->
+    <div class="glass lg:col-span-4 h-full flex flex-col p-6 items-center justify-center relative">
+        <div id="scoreLoader" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/50 backdrop-blur-sm z-50 rounded-2xl hidden">
+            <svg class="animate-spin h-10 w-10 text-blue-500 mb-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+            <p class="text-sm text-blue-300 animate-pulse">Running Random Forest Model...</p>
+        </div>
+
+        <h2 class="text-xl font-semibold mb-8 text-center text-slate-300">Readiness Score</h2>
+        <div class="score-dial-container">
+            <svg width="200" height="200">
+                <circle class="score-circle-bg"></circle>
+                <circle id="scoreProgress" class="score-circle-progress"></circle>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span id="scoreValue" class="text-5xl font-bold text-white tracking-tighter">--</span>
+                <span class="text-xs text-slate-400 mt-1 uppercase tracking-widest">/ 100</span>
+            </div>
+        </div>
+
+        <div id="scoreMessage" class="mt-8 text-center font-medium bg-white/5 py-2 px-6 rounded-full text-slate-400">
+            Awaiting Profile Data...
+        </div>
+
+        <div id="profileDetails" class="w-full mt-8 opacity-0 transition-opacity duration-500 hidden">
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div class="bg-white/5 p-3 rounded-lg"><span class="text-slate-400 block text-xs">CGPA</span><span id="l_cgpa" class="font-semibold">-</span></div>
+                <div class="bg-white/5 p-3 rounded-lg"><span class="text-slate-400 block text-xs">Projects</span><span id="l_proj" class="font-semibold">-</span></div>
+                <div class="bg-white/5 p-3 rounded-lg"><span class="text-slate-400 block text-xs">Internships</span><span id="l_int" class="font-semibold">-</span></div>
+                <div class="bg-white/5 p-3 rounded-lg"><span class="text-slate-400 block text-xs">Skills</span><span id="l_skills" class="font-semibold truncate block">-</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Experiences Panel -->
+    <div class="glass flex flex-col lg:col-span-4 h-full relative">
+        <div class="p-4 border-b border-white/5 flex items-center justify-between">
+            <h2 class="font-semibold text-lg">Senior Experiences</h2>
+            <span class="text-xs text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">FAISS Search</span>
+        </div>
+        <div id="experiencesBox" class="flex-1 p-4 overflow-y-auto flex flex-col gap-4">
+            <div class="text-center text-sm text-slate-500 mt-10">Complete your profile to see matched senior interview experiences.</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const chatBox = document.getElementById('chatBox');
+    const chatInput = document.getElementById('chatInput');
+    const scoreProgress = document.getElementById('scoreProgress');
+    const scoreValue = document.getElementById('scoreValue');
+    const scoreMessage = document.getElementById('scoreMessage');
+    const profileDetails = document.getElementById('profileDetails');
+    const experiencesBox = document.getElementById('experiencesBox');
+    const scoreLoader = document.getElementById('scoreLoader');
+    let isProcessing = false;
+
+    function addChat(message, isUser = false) {
+        const div = document.createElement('div');
+        div.className = `chat-bubble ${isUser ? 'chat-user' : 'chat-ai'} text-sm`;
+        div.textContent = message;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function handleChatSubmit(e) {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if (!text || isProcessing) return;
+
+        addChat(text, true);
+        chatInput.value = '';
+        isProcessing = true;
+
+        // Create a placeholder bubble for the AI response
+        const aiBubble = document.createElement('div');
+        aiBubble.className = `chat-bubble chat-ai text-sm`;
+        chatBox.appendChild(aiBubble);
+
+        try {
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: text})
+            });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullText = "";
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value, { stream: true });
+                
+                if (chunk.includes("[ERROR]")) {
+                    aiBubble.innerHTML = `<span class="text-red-400 font-bold block mb-1">⚠️ Connection Error</span><span class="text-xs text-red-300">${chunk.replace("[ERROR]", "").trim()}</span>`;
+                    aiBubble.classList.remove('chat-ai');
+                    aiBubble.classList.add('bg-red-500/10', 'border-red-500/30');
+                    break;
+                }
+
+                if (chunk.includes("[DONE]")) {
+    // 1. Remove the [DONE] tag from the display text
+    const cleanText = chunk.replace("[DONE]", "").trim();
+    fullText += cleanText;
+    aiBubble.textContent = fullText;
+    
+    // 2. Disable input so they can't spam messages while analyzing
+    chatInput.disabled = true;
+    
+    // 3. Trigger the final calculation
+    addChat("Profile complete! Calculating your Placement IQ...", false);
+    await runAnalysis();
+    
+    // 4. Re-enable after a delay or after analysis
+    chatInput.disabled = false;
+    break;
+}
+                
+                fullText += chunk;
+                aiBubble.textContent = fullText;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        } catch (error) {
+            aiBubble.textContent = "Error: Failed to connect.";
+        } finally {
+            isProcessing = false;
+        }
+    }
+
+    async function handleFileUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        addChat(`Uploaded Resume: ${file.name}`, true);
+        isProcessing = true;
+        scoreLoader.classList.remove('hidden');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await fetch('/upload-resume', { method: 'POST', body: formData });
+            const data = await res.json();
+            handleAnalysisData(data);
+            addChat("Resume processed successfully! Check your dashboard.", false);
+        } catch (error) {
+            addChat("Failed to process resume. Please ensure it is a PDF or docx file.", false);
+            scoreLoader.classList.add('hidden');
+        } finally {
+            isProcessing = false;
+            e.target.value = '';
+        }
+    }
+
+    async function runAnalysis() {
+        scoreLoader.classList.remove('hidden');
+        try {
+            const res = await fetch('/analyze-chat', { method: 'POST' });
+            const data = await res.json();
+            handleAnalysisData(data);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    function handleAnalysisData(data) {
+        scoreLoader.classList.add('hidden');
+        
+        const score = data.score;
+        let animatedScore = 0;
+        const interval = setInterval(() => {
+            animatedScore += 2;
+            if (animatedScore >= score) {
+                animatedScore = score;
+                clearInterval(interval);
+            }
+            scoreValue.textContent = Math.round(animatedScore);
+        }, 30);
+
+        const circumference = 565.48;
+        const offset = circumference - (score / 100) * circumference;
+        scoreProgress.style.strokeDashoffset = offset;
+
+        if (score >= 75) {
+            scoreProgress.style.stroke = '#10b981';
+            scoreValue.style.color = '#10b981';
+            scoreMessage.textContent = "Highly Competitive Profile! 🚀";
+            scoreMessage.className = "mt-8 text-center font-medium bg-emerald-500/10 text-emerald-400 py-2 px-6 rounded-full border border-emerald-500/20";
+        } else if (score >= 45) {
+            scoreProgress.style.stroke = '#f59e0b';
+            scoreValue.style.color = '#f59e0b';
+            scoreMessage.textContent = "On Track. Build more projects! 🛠️";
+            scoreMessage.className = "mt-8 text-center font-medium bg-amber-500/10 text-amber-400 py-2 px-6 rounded-full border border-amber-500/20";
+        } else {
+            scoreProgress.style.stroke = '#ef4444';
+            scoreValue.style.color = '#ef4444';
+            scoreMessage.textContent = "Needs substantial improvement. 📚";
+            scoreMessage.className = "mt-8 text-center font-medium bg-red-500/10 text-red-400 py-2 px-6 rounded-full border border-red-500/20";
+        }
+
+       // Replace the old block with this:
+        document.getElementById('l_cgpa').textContent = data.profile.academic_score || "-";
+        document.getElementById('l_proj').textContent = data.profile.project_quality + "/10" || "-";
+        document.getElementById('l_int').textContent = data.profile.experience_score + "/10" || "-";
+        document.getElementById('l_skills').textContent = (data.profile.tech_stack ? data.profile.tech_stack.length : 0) + " tags";
+        profileDetails.classList.remove('hidden');
+        setTimeout(() => profileDetails.classList.remove('opacity-0'), 50);
+
+        experiencesBox.innerHTML = '';
+        data.top_experiences.forEach(exp => {
+            const isSel = exp.outcome.toLowerCase() === 'selected';
+            const badgeClass = isSel ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border-rose-500/30';
+            
+            experiencesBox.innerHTML += `
+                <div class="exp-card bg-white/5 border border-white/10 rounded-xl p-4 relative overflow-hidden group cursor-pointer hover:bg-white/10 transition">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-bold text-white text-md">${exp.company}</h3>
+                            <p class="text-xs text-slate-400">${exp.student_name} • CGPA: ${exp.cgpa}</p>
+                        </div>
+                        <span class="text-xs px-2 py-1 rounded border ${badgeClass}">${exp.outcome}</span>
+                    </div>
+                    <p class="text-xs text-slate-300 line-clamp-3 mb-3 leading-relaxed">${exp.experience_text}</p>
+                    <div class="flex flex-wrap gap-1">
+                        ${exp.tech_stack.map(t => `<span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 rounded-full">${t}</span>`).join('')}
+                    </div>
+                    <div class="absolute bottom-2 right-4 text-[10px] text-slate-500 opacity-0 group-hover:opacity-100 transition">
+                        Match: ${exp.similarity_score}%
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    async function resetSession() {
+        await fetch('/reset', { method: 'POST' });
+        chatBox.innerHTML = '<div class="chat-bubble chat-ai text-sm">Session reset! Upload an updated resume or tell me about your new credentials.</div>';
+        scoreValue.textContent = '--';
+        scoreValue.style.color = 'white';
+        scoreProgress.style.strokeDashoffset = 565.48;
+        scoreProgress.style.stroke = '#3b82f6';
+        scoreMessage.textContent = "Awaiting Profile Data...";
+        scoreMessage.className = "mt-8 text-center font-medium bg-white/5 py-2 px-6 rounded-full text-slate-400";
+        profileDetails.classList.add('opacity-0');
+        setTimeout(() => profileDetails.classList.add('hidden'), 500);
+        experiencesBox.innerHTML = '<div class="text-center text-sm text-slate-500 mt-10">Complete your profile to see matched senior interview experiences.</div>';
+    }
+
+    const upL=document.getElementById('uploadLabel');
+    upL.ondragover = e => { e.preventDefault(); upL.classList.add('dragover'); };
+    upL.ondragleave = e => { e.preventDefault(); upL.classList.remove('dragover'); };
+    upL.ondrop = e => { e.preventDefault(); upL.classList.remove('dragover'); document.getElementById('resumeUpload').files = e.dataTransfer.files; handleFileUpload({target:{files:e.dataTransfer.files}}); };
+
+</script>
+</body>
+</html>

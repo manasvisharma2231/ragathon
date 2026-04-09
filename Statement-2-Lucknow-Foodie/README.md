@@ -58,3 +58,5 @@ RAGATHON/
     ├── .env.example
     ├── .gitkeep
     └── run.sh
+
+    Video link: https://youtu.be/W8XDQALeczM
